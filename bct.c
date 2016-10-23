@@ -1,16 +1,92 @@
 /*	Bitwise cyclic tag interpreter in c.
 	Coded by Coates, 9-10th July 2016.
 
-	Currently, the program is very inefficient
+	Currently, the program is very inneficient
 	as it takes an entire byte to store either
-	a '1' or a '0'. This may be handy, however
-	if future versions support other values
-	(if you can choose between BCT and an
-	extended version). Some form of I/O may
-	also be added.
+	a '1' or a '0'.
 */
 
-#include "core-bct.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct bct {
+	char val;	// '1' or '0'
+	struct bct* r;	// Next part of string (on the right)
+	struct bct* l;	// Last part of string (on the left)
+} bct;
+
+bct* newbct(char val, bct* left, bct* right) {
+	bct* b = malloc(sizeof(bct));
+
+	if(b == NULL) fprintf(stderr, "[!]: Allocating data string member failed!\n");
+
+	b -> val = val;
+	b -> r = right;
+	b -> l = left;
+
+	if(b -> l != NULL) b -> l -> r = b;
+	if(b -> r != NULL) b -> r -> l = b;
+	return b;
+}
+
+void delbct(bct* b) {
+	bct* r = b -> r;
+	bct* l = b -> l;
+
+	if(r != NULL && l != NULL) {		// If deleted part was in the middle of others
+		r -> l = l;
+		l -> r = r;
+	} else if(r != NULL && l == NULL) {	// If it was the first one
+		r -> l = NULL;
+	} else if(r == NULL && l != NULL) {	// If it was the last
+		l -> r = NULL;
+	} else {}				// Do we need to do anything?
+
+	free(b);
+}
+
+bct* leftbct(bct* b) {
+	bct* e;
+	for(e = b; e -> l != NULL; e = e -> l);	// Move e to the leftmost one
+	return e;
+}
+
+bct* rightbct(bct* b) {
+	bct* e;
+	for(e = b; e -> r != NULL; e = e -> r);
+	return e;
+}
+
+int countbct(bct* b) {
+	int i;
+	bct* e;
+	for(e = leftbct(b), i = 0; e -> r != NULL; e = e -> r, i++);
+	i++;
+	return i;
+}
+
+
+void dumpbct(bct* b, int spc) {			// BCT element in the queue, number of spaces
+	bct* t;
+	int i;
+	for(i = 0; i < spc; i++) {		// Pad it out with spaces
+		printf(" ");
+	}
+
+	for(t = leftbct(b); t != NULL; t = t -> r) {
+		printf("%c", t -> val);
+	}
+	printf("\n");
+}
+
+int isValid(char* s) {
+/*	int i;
+	for(i = 0; i <= strlen(s); i++)
+		if(s[i] != '0' || s[i] != '1' || s[i] != '\0' || s[i] != '\n') return 0;	// False
+	need to redo this */
+	return 1;
+}
 
 #define BLOCKSZ 256
 
@@ -41,7 +117,7 @@ int main(int argc, char** argv) {
 
 
 	if(ra == 0) {
-		printf("[!!]: No initial data string entered. Setting the data string to one.\n");
+		printf("No initial data string entered. Setting the root value to one.\n");
 		r = newbct(c, NULL, NULL);
 		t = l = r;
 		ra = 1;
@@ -69,9 +145,15 @@ int main(int argc, char** argv) {
 	i = 0;					// Reset i so that it can be reused
 	int len = strlen(p), spc = 0;		// Optimises this so we don't have to keep computing strlen. Spaces variable allows for nice formatting.
 
-	if(len == 0) {				// Does strlen include the null byte or not? This assumes not.
+	if(len == 0) {
 		done = 1;
 		printf("No input program!\n");
+	}
+
+	if(!isValid(p)) {
+		fprintf(stderr, "[!!]: Incorrect program input! Exiting NOW!\n");
+		done = 1;
+		exit(-1);
 	}
 
 	while(!done) {
