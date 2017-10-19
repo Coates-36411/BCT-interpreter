@@ -1,7 +1,7 @@
 /*	Bitwise cyclic tag interpreter in c.
 	Coded by Coates, 9-10th July 2016.
 
-	Currently, the program is very inneficient
+	Currently, the program is very inefficient
 	as it takes an entire byte to store either
 	a '1' or a '0'.
 */
